@@ -1,0 +1,79 @@
+<html>
+
+
+
+<head>
+    <title>College Scoreboard</title>
+</head>
+<link rel="stylesheet" type="text/css" href="collegescore.css">
+<body>
+    <h1>College Score</h1>
+    
+    
+    
+    <form onsubmit="return check()" method="GET" action="./stats.html" autocomplete="off">
+        <input type="text" name="name" id="name" placeholder="School Name">
+        <input type="text" name="city" placeholder ="City(not required)">
+        <input type="text" name="gpa" id="gpa" placeholder="GPA(0-4.00)" min="0" max="4.00">
+        <input type="text" name="sat" id="sat" placeholder="SAT Score(0-1600)" min="0" max="1600">
+        <input type="text" name="act" id="act" placeholder="ACT Score(1-36)" min="1" max="36">
+
+        
+        
+        <br>
+        <b>Gender</b>
+        <br>
+        <input type="radio" name="gender" id="male" value="men"> Male<br>
+        <input type="radio" name="gender" id="female" value="women"> Female<br>
+        
+        <br>
+        <b>Race</b>
+        <br> 
+        <input type="radio" name="race" id="white" value="white"> White/Caucasian<br>
+        <input type="radio" name="race" id="hispanic" value="hispanic"> Hispanic<br>
+        <input type="radio" name="race" id="black" value="black"> Black<br>
+        <input type="radio" name="race" id="asian" value="asian"> Asian<br>
+        <input type="radio" name="race" id="aian" value="aian"> American Indian/Alaska Native<br>
+        <input type="radio" name="race" id="nhpi" value="nhpi"> Hawaiian/Pacific Islander<br>
+        <br>
+        <input type="checkbox" name="first-gen"> First Generation Student<br>
+        
+        <br>
+        
+        <input type="submit">
+    </form>
+    <br>
+    <font color = "red" id="err" class="err">You must enter the name of the school</font>
+
+</body>
+<script>
+    function check(){
+        if(document.getElementById("name").value.length == 0){
+            document.getElementById("err").innerHTML = "You must enter the name of the school"
+            document.getElementById("err").classList.remove('err')
+            return false;
+        }
+        if(document.getElementById("gpa").value.length == 0){
+            document.getElementById("err").innerHTML = "You must enter your GPA"
+            document.getElementById("err").classList.remove('err')
+            return false;
+        }
+        if(document.getElementById("sat").value.length == 0 && document.getElementById("act").value.length == 0){
+            document.getElementById("err").innerHTML = "You must enter either your ACT or SAT score"
+            document.getElementById("err").classList.remove('err')
+            return false;
+        }
+         if(!document.getElementById("male").checked && !document.getElementById("female").checked){
+            document.getElementById("err").innerHTML = "You must enter your gender"
+            document.getElementById("err").classList.remove('err')
+            return false;
+         }
+         if(!document.getElementById("white").checked && !document.getElementById("hispanic").checked && !document.getElementById("black").checked && !document.getElementById("asian").checked && !document.getElementById("aian").checked && !document.getElementById("nhpi").checked){                                      
+            document.getElementById("err").innerHTML = "You must enter your race"
+            document.getElementById("err").classList.remove('err')
+            return false;
+         }
+    }
+    
+</script>
+</html>

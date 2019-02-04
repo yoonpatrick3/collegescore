@@ -1,0 +1,245 @@
+<html>
+
+<head>
+    <title>College Scoreboard</title>
+</head>
+<link rel="stylesheet" type="text/css" href="collegescore.css">
+<body>
+    <h1>College Score</h1>
+    <h1 id="header">Pick the school you want data for</h1>
+    <p id="loading">Loading Schools...</p>
+    <div id="schools"></div>
+    
+    <div id="face"></div>
+    
+    <div id="link"></div>
+    <br>
+<button onclick="goBack()">Go Back</button>
+
+<script>
+function goBack() {
+    if(document.getElementById("header").innerHTML == "Pick the school you want data for"){
+      window.history.go(-1);
+    }
+    else{
+      window.history.go(0);  
+    }
+}
+</script>
+
+ 
+    <script>
+        function findGetParameter(parameterName) {
+            var result = null,
+                tmp = [];
+            location.search
+                .substr(1)
+                .split("&")
+                .forEach(function (item) {
+                  tmp = item.split("=");
+                  if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+                });
+            return result;
+        }
+
+    
+        var baseurl = "https://api.data.gov/ed/collegescorecard/v1/schools/";
+        var key = "LvEYn3iZH7t8r8NRIxvzNgglXT1aoMRWYik6V0FB";
+        
+        function getBySchool(name, city) {
+            
+            if (!name && !city) {
+                console.log("Please specify name and/or city")
+                return;
+            }
+            
+            var request = new XMLHttpRequest();
+            
+            request.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                   parseResults(request.responseText);
+                }
+            };
+            
+            var newurl =  baseurl + "?api_key=" + key;
+            if (name) {
+                newurl += "&school.name=" + name;
+            }
+            if (city) {
+                newurl += "&school.city=" + city;
+            }
+            console.log(newurl);
+            
+            request.open('GET', newurl, true);
+            request.send();
+        }
+        
+        var apiData = undefined;
+        
+        getBySchool(findGetParameter("name"),findGetParameter("city"));
+        
+        function selectSchool(name, prob, url) {
+            var percent = Math.floor(prob * 100);
+            document.getElementById("header").innerHTML = name;
+            document.getElementById("link").innerHTML = "<a href=https://" + url +">" + url + "</a>";
+            document.getElementById("schools").innerHTML = "<p>You have a " + percent + "% chance of acceptance</p>"
+            var face = ">:("
+            if(percent > 80){
+                face = ":o"
+            }
+            else if(percent > 50 ){
+                face = ":)"
+            }
+            else if(percent > 30 ){
+                face = ":|"
+            }
+             else if(percent > 10 ){
+                face = ":("
+            }
+            document.getElementById("face").innerHTML = "<p>"+face+"</p>"
+        }
+        
+        function dne(name, url) {
+            document.getElementById("header").innerHTML = name;
+            document.getElementById("link").innerHTML = "<a href=https://" + url +">" + url + "</a>";
+            document.getElementById("schools").innerHTML = "<p>Not enough information was provided from the school. Check the website for more information!</p>"
+        }
+        
+        function cdf(x, mean, variance) {
+          return 0.5 * (1 + erf((x - mean) / (Math.sqrt(2 * variance))));
+        }
+        
+        function erf(x) {
+          // save the sign of x
+          var sign = (x >= 0) ? 1 : -1;
+          x = Math.abs(x);
+        
+          // constants
+          var a1 =  0.254829592;
+          var a2 = -0.284496736;
+          var a3 =  1.421413741;
+          var a4 = -1.453152027;
+          var a5 =  1.061405429;
+          var p  =  0.3275911;
+        
+          // A&S formula 7.1.26
+          var t = 1.0/(1.0 + p*x);
+          var y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+          return sign * y; // erf(-x) = -erf(x);
+        }
+        
+        function gpaProb(gpa, adm) {
+            console.log("Average gpa at this college: " + Math.min(0.5/adm + 2.5, 4.00));
+            return cdf(gpa, Math.min(0.5/adm + 2.5, 4.00), Math.pow(0.85/1.35, 2));
+        }
+        
+        function parseSchool(i) {
+            var school = apiData[i];
+            var data = school["2016"]
+            var demographics = data.student.demographics;
+            var adm = data.admissions;
+            
+            var defaultadm = adm.admission_rate.overall;
+            
+            if (findGetParameter("act") && adm.act_scores) {
+                var std = (parseFloat(adm.act_scores["75th_percentile"].cumulative) - parseFloat(adm.act_scores["25th_percentile"].cumulative))/1.35;
+                var mean = parseInt(adm.act_scores["midpoint"].cumulative);
+                console.log(adm.act_scores["75th_percentile"]);
+                console.log(mean);
+                var pAct = cdf(parseInt(findGetParameter("act")), mean, Math.pow(std, 2))/.5;
+            }
+            if (findGetParameter("sat") && adm.sat_scores) {
+            
+                var total75 = parseFloat(adm.sat_scores["75th_percentile"].math) + parseFloat(adm.sat_scores["75th_percentile"].critical_reading);
+                var total25 = parseFloat(adm.sat_scores["25th_percentile"].math) + parseFloat(adm.sat_scores["25th_percentile"].critical_reading);
+                var totalmed = parseFloat(adm.sat_scores["midpoint"].math) + parseFloat(adm.sat_scores["midpoint"].critical_reading);
+                
+                var std = (total75-total25)/1.35;
+                var mean = totalmed;
+                var pSat = cdf(parseInt(findGetParameter("sat")), mean, Math.pow(std, 2))/.5;
+            }
+            
+            var pFirstGen = parseFloat(demographics.first_generation);
+            
+            var race = findGetParameter("race");
+            var pSameRace = demographics.race_ethnicity[race];
+           
+            var gender = findGetParameter("gender");
+            var pGender = demographics[gender];
+            
+            var totalPs = 3;
+            var totalPercentage = 0;
+            if (findGetParameter("act")) {
+                totalPs += 1;
+                totalPercentage += pAct;
+            }
+            if (findGetParameter("sat")) {
+                totalPs += 1;
+                totalPercentage += pSat;
+            }
+            if (findGetParameter("first-gen") == "on") {
+                totalPs += 1;
+                totalPercentage += 1-pFirstGen;
+            }
+            totalPercentage += 1-pSameRace;
+            totalPercentage += 1-pGender;
+            totalPercentage += gpaProb(parseFloat(findGetParameter("gpa")), defaultadm);
+            
+            console.log(totalPs);
+            console.log(defaultadm);
+            console.log(pSameRace);
+            console.log(pGender);
+            console.log(pAct);
+            console.log(pSat);
+            
+            p = (totalPercentage / (0.5*totalPs));
+            if(defaultadm) {
+                p *= defaultadm;
+            } else {
+            }
+            
+            var site = school.school.school_url;
+            
+            if (p) {
+                 selectSchool(school.school.name, Math.min(p, 0.9999), site)
+            } else {
+                dne(school.school.name, site);
+            }
+            
+           
+            
+        }
+        
+        function parseResults(data) {
+            
+            document.getElementById("loading").innerHTML = "";
+            
+            var results = JSON.parse(data).results;
+            apiData = results;
+            var dataLength = JSON.parse(data).metadata.total;
+            
+            console.log(JSON.parse(data));
+            if (dataLength == 0 ){
+                document.getElementById("header").innerHTML = "There are no schools that match your search results"
+                return
+            }
+            if (dataLength > 10) {
+                dataLength = 10;
+            }
+            for(var i = 0; i < dataLength; i++){
+                var school = results[i];
+                var schoolName = school.school.name;
+                document.getElementById("schools").innerHTML += "<a onclick='parseSchool(" + i + ");'>" + schoolName + "</a><br><br>" 
+                //var yearData = school["2016"];
+                //console.log(yearData);
+            }
+        }
+        
+        
+    
+    </script>
+    
+    
+</body>
+
+</html>
